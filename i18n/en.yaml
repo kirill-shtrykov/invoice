@@ -1,0 +1,15 @@
+tax-id: TAX number
+address: Address 
+bank: Bank
+invoice: Invoice
+invoice-id: Invoice Nº
+invoice-date: Date
+bill-to: Bill To
+quantity: Quantity
+description: Description
+price: Price
+subtotal: Subtotal
+tax: Sales Tax
+shipping: Shipping & Handling
+additional: "If you have any questions concerning this invoice, please contact\n{{ .Contacts }}\nThank you for your business!"
+agreement: According to the Service Agreement Nº

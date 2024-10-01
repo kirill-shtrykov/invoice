@@ -1,0 +1,15 @@
+tax-id: NIE
+address: Dirección 
+bank: Banco
+invoice: Factura
+invoice-id: Nº de factura
+invoice-date: Fecha de la factura
+bill-to: Facturar a
+quantity: Cantidad
+description: Descripción
+price: Precio
+subtotal: Base imponible
+tax: I.V.A 0%
+shipping: Envío y manipulación
+additional: "Si tiene alguna pregunta con respecto a esta factura, por favor contacte a\n{{ .Contacts }}\n¡Gracias por su confianza!"
+agreement: De acuerdo con el Contrato de Servicio Nº

@@ -1,2 +1,2 @@
 # invoice
-Simple invoice generator with mulilanguage support
+Simple invoice generator with multilingual support
