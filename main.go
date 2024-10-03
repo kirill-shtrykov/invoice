@@ -1,22 +1,15 @@
+//go:generate fyne bundle -o data.go assets/icons/invoice-icon.png
 package main
 
 import (
-	"fmt"
-	"log"
-	"os"
+	"fyne.io/fyne/v2/app"
 )
 
-func run() error {
-	config, err := LoadConfig(defaultConfigFile)
-	if err != nil {
-		return fmt.Errorf("unable load config: %v", err)
-	}
-	return CreatePDF(config)
-}
-
 func main() {
-	if err := run(); err != nil {
-		log.Fatal(err)
-	}
-	os.Exit(0)
+	app := app.New()
+	app.SetIcon(resourceInvoiceIconPng)
+
+	g := newInvoiceGenerator()
+	g.CreateUI(app)
+	g.window.ShowAndRun()
 }

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
-	"os"
 	"strings"
 	"text/template"
 	"time"
@@ -13,21 +12,22 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const defaultConfigFile string = "config.yaml"
-
 var primaryColor = color{0x2E, 0x59, 0x80}
 var secondaryColor = color{0xF0, 0xF8, 0xFF}
 var whiteColor = color{0xFF, 0xFF, 0xFF}
 var blackColor = color{0, 0, 0}
 
-//go:embed fonts/cantarell-regular.ttf
+//go:embed assets/fonts/cantarell-regular.ttf
 var fontCantarellRegular []byte
 
-//go:embed fonts/cantarell-bold.ttf
+//go:embed assets/fonts/cantarell-bold.ttf
 var fontCantarellBold []byte
 
 //go:embed i18n/*.yaml
 var i18n embed.FS
+
+//go:embed config.yaml
+var configFile []byte
 
 type color struct {
 	r, g, b uint8
@@ -40,10 +40,10 @@ func (c *color) IntTuple() (int, int, int) {
 type Config struct {
 	Provider Provider `yaml:"provider"`
 	Company  Company  `yaml:"company"`
-	Date     Date     `yaml:"date"`
 	Langs    []string `yaml:"langs"`
 	Price    float64  `yaml:"price"`
 	Quantity float64  `yaml:"quantity"`
+	Dates    string   `yaml:"dates"`
 }
 
 type Provider struct {
@@ -64,10 +64,6 @@ type Company struct {
 	ContractID string `yaml:"contract-id"`
 }
 
-type Date struct {
-	Format string `yaml:"format"`
-}
-
 type Translation struct {
 	TaxID       string `yaml:"tax-id"`
 	Address     string `yaml:"address"`
@@ -86,16 +82,10 @@ type Translation struct {
 	Agreement   string `yaml:"agreement"`
 }
 
-func LoadConfig(configFile string) (*Config, error) {
+func LoadConfig() (*Config, error) {
 	var config Config
 
-	yamlData, err := os.ReadFile(configFile)
-	if err != nil {
-		return &config, err
-	}
-
-	err = yaml.Unmarshal(yamlData, &config)
-	if err != nil {
+	if err := yaml.Unmarshal(configFile, &config); err != nil {
 		return &config, err
 	}
 
@@ -149,9 +139,11 @@ func generatePage(pdf *fpdf.Fpdf, config *Config, translation *Translation) {
 	const topMargin float64 = 20
 	const leftMargin float64 = 20
 	const cellMargin float64 = 5
+	const pageWidth = 170
 	const providerBlockWidth = 100
 	const invoiceBlockWidth = 70
 	const additionalBlockWidth = 120
+	const lineHeight = 5
 
 	pdf.SetMargins(leftMargin, topMargin, -1)
 	pdf.AddPage()
@@ -163,14 +155,12 @@ func generatePage(pdf *fpdf.Fpdf, config *Config, translation *Translation) {
 	pdf.SetFillColor(secondaryColor.IntTuple())
 	pdf.CellFormat(providerBlockWidth, 10, strings.ToUpper(config.Provider.Name), "", 1, "", true, 0, "")
 	pdf.SetFont("Cantarell-Regular", "", 10)
-	_, lineHeight := pdf.GetFontSize()
-	lineHeight = lineHeight + 1.5
 	pdf.CellFormat(providerBlockWidth, lineHeight, fmt.Sprintf("%s: %s", translation.TaxID, config.Provider.ID), "", 1, "", true, 0, "")
 	pdf.MultiCell(providerBlockWidth, lineHeight, fmt.Sprintf("%s: %s", translation.Address, config.Provider.Address), "", "", true)
-	pdf.CellFormat(100, lineHeight, fmt.Sprintf("%s: %s", translation.Bank, config.Provider.Bank), "", 1, "", true, 0, "")
-	pdf.CellFormat(100, lineHeight, fmt.Sprintf("IBAN: %s", config.Provider.IBAN), "", 1, "", true, 0, "")
-	pdf.CellFormat(100, lineHeight, fmt.Sprintf("SWIFT: %s", config.Provider.SWIFT), "", 1, "", true, 0, "")
-	pdf.CellFormat(100, lineHeight, fmt.Sprintf("%s %s", config.Provider.Phone, config.Provider.Email), "", 1, "", true, 0, "")
+	pdf.CellFormat(providerBlockWidth, lineHeight, fmt.Sprintf("%s: %s", translation.Bank, config.Provider.Bank), "", 1, "", true, 0, "")
+	pdf.CellFormat(providerBlockWidth, lineHeight, fmt.Sprintf("IBAN: %s", config.Provider.IBAN), "", 1, "", true, 0, "")
+	pdf.CellFormat(providerBlockWidth, lineHeight, fmt.Sprintf("SWIFT: %s", config.Provider.SWIFT), "", 1, "", true, 0, "")
+	pdf.CellFormat(providerBlockWidth, lineHeight, fmt.Sprintf("%s %s", config.Provider.Phone, config.Provider.Email), "", 1, "", true, 0, "")
 
 	// Invoice details block
 	pdf.SetXY(providerBlockWidth+leftMargin, topMargin)
@@ -181,17 +171,17 @@ func generatePage(pdf *fpdf.Fpdf, config *Config, translation *Translation) {
 	pdf.SetFont("Cantarell-Regular", "", 10)
 	now := time.Now()
 	pdf.CellFormat(invoiceBlockWidth, lineHeight, fmt.Sprintf("%s: %s", translation.InvoiceID, now.Format("01-2006"))+" ", "", 2, "R", true, 0, "")
-	pdf.CellFormat(invoiceBlockWidth, lineHeight*6, fmt.Sprintf("%s: %s", translation.InvoiceDate, now.Format("02-01-2006"))+" ", "", 1, "TR", true, 0, "")
+	pdf.CellFormat(invoiceBlockWidth, lineHeight*6, fmt.Sprintf("%s: %s", translation.InvoiceDate, now.Format("02.01.2006"))+" ", "", 1, "TR", true, 0, "")
 	pdf.Ln(5)
 
 	// BillTo information
 	pdf.SetTextColor(primaryColor.IntTuple())
 	pdf.SetFillColor(whiteColor.IntTuple())
 	pdf.SetFont("Cantarell-Bold", "", 10)
-	pdf.CellFormat(100, lineHeight, fmt.Sprintf("%s: %s", translation.BillTo, config.Company.Name), "", 1, "", true, 0, "")
+	pdf.CellFormat(pageWidth, lineHeight, fmt.Sprintf("%s: %s", translation.BillTo, config.Company.Name), "", 1, "", true, 0, "")
 	pdf.SetFont("Cantarell-Regular", "", 10)
-	pdf.CellFormat(100, lineHeight, fmt.Sprintf("%s: %s", translation.Address, config.Company.Address), "", 1, "", true, 0, "")
-	pdf.CellFormat(100, lineHeight, config.Company.Additional, "", 1, "", true, 0, "")
+	pdf.CellFormat(pageWidth, lineHeight, fmt.Sprintf("%s: %s", translation.Address, config.Company.Address), "", 1, "", true, 0, "")
+	pdf.CellFormat(pageWidth, lineHeight, config.Company.Additional, "", 1, "", true, 0, "")
 	pdf.Ln(5)
 
 	// Invoice main table
@@ -199,7 +189,7 @@ func generatePage(pdf *fpdf.Fpdf, config *Config, translation *Translation) {
 	data := [][]string{
 		{
 			fmt.Sprintf("%.2f", config.Quantity),
-			fmt.Sprintf("%s %s (16.09.2024-30.09.2024)", translation.Agreement, config.Company.ContractID),
+			fmt.Sprintf("%s %s (%s)", translation.Agreement, config.Company.ContractID, config.Dates),
 			fmt.Sprintf("%.2f €", config.Price),
 			fmt.Sprintf("%.2f €", config.Quantity*config.Price),
 		},
@@ -240,7 +230,7 @@ func generatePage(pdf *fpdf.Fpdf, config *Config, translation *Translation) {
 	pdf.CellFormat(20, lineHeight, fmt.Sprintf("%.2f €", config.Quantity*config.Price), "B", 0, "R", false, 0, "")
 }
 
-func CreatePDF(config *Config) error {
+func CreatePDF(config *Config) (string, error) {
 	pdf := fpdf.New("P", "mm", "A4", "")
 	pdf.AddUTF8FontFromBytes("Cantarell-Regular", "", fontCantarellRegular)
 	pdf.AddUTF8FontFromBytes("Cantarell-Bold", "", fontCantarellBold)
@@ -248,20 +238,21 @@ func CreatePDF(config *Config) error {
 	for _, lang := range config.Langs {
 		translate, err := LoadTranslation(lang)
 		if err != nil {
-			return fmt.Errorf("unable to load translation for %s: %v", lang, err)
+			return "", fmt.Errorf("unable to load translation for %s: %v", lang, err)
 		}
 		t, err := template.New("Additional").Parse(translate.Additional)
 		if err != nil {
-			return fmt.Errorf("unable to load template: %v", err)
+			return "", fmt.Errorf("unable to load template: %v", err)
 		}
 		var buf bytes.Buffer
 		err = t.Execute(&buf, map[string]interface{}{"Contacts": fmt.Sprintf("%s <%s>", config.Provider.Name, config.Provider.Email)})
 		if err != nil {
-			return fmt.Errorf("unable to execute template: %v", err)
+			return "", fmt.Errorf("unable to execute template: %v", err)
 		}
 		translate.Additional = buf.String()
 		generatePage(pdf, config, translate)
 	}
 	now := time.Now()
-	return pdf.OutputFileAndClose(fmt.Sprintf("invoice-%s.pdf", now.Format(config.Date.Format)))
+	fileName := fmt.Sprintf("invoice-%s.pdf", now.Format("01-06"))
+	return fileName, pdf.OutputFileAndClose(fileName)
 }

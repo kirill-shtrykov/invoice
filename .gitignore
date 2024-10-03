@@ -29,3 +29,6 @@ config.yaml
 
 # PDF
 *.pdf
+
+# Fyne debug
+__debug_bin*

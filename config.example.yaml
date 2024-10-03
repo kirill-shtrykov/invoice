@@ -1,0 +1,19 @@
+provider:
+  name: Service provider name
+  id: TAX ID
+  address: Service provider address
+  bank: Service provider bank
+  iban: Service provider bank account
+  swift: Bank BIC/SWIFT
+  phone: Service provider phone number
+  email: and email
+company:
+  name: Company name
+  address: Company address
+  additional: Company additional information
+  contract-id: Contract number/ID
+langs:
+  - en
+quantity: Work quantity
+price: Price for one unit
+ 
