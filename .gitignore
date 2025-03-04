@@ -32,3 +32,6 @@ config.yaml
 
 # Fyne debug
 __debug_bin*
+
+# VSCode
+.vscode/
